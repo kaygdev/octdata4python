@@ -68,7 +68,6 @@ namespace
 		return result;
 	}
 
-
 	class ParameterToOptions
 	{
 		ParameterToOptions* parent = nullptr;
@@ -116,6 +115,38 @@ namespace
 
 	};
 
+	template<typename T>
+	inline T getConfigFromStruct(const bp::dict& dict, const char* name, const T defaultValue)
+	{
+		if(dict.has_key(name))
+			return bp::extract<T>(dict[name]);
+		return defaultValue;
+	}
+
+
+	class ParameterFromOptions
+	{
+		const bp::dict* dict;
+
+		ParameterFromOptions(const bp::dict* dict) : dict(dict) {}
+	public:
+		ParameterFromOptions(const bp::dict& dict) : dict(&dict) {}
+
+		template<typename T>
+		void operator()(const char* name, T& value)
+		{
+			if(dict)
+				value = getConfigFromStruct(*dict, name, value);
+		}
+
+		ParameterFromOptions subSet(const std::string& name)
+		{
+			if(dict && dict->has_key(name))
+				return ParameterFromOptions(bp::extract<bp::dict>((*dict)[name]));
+			return ParameterFromOptions(nullptr);
+		}
+	};
+
 	// general export methods
 	bp::dict convertSlo(const OctData::SloImage& slo)
 	{
@@ -145,7 +176,6 @@ namespace
 
 		return dict;
 	}
-
 
 	bp::dict convertBScan(const OctData::BScan* bscan)
 	{
@@ -188,7 +218,6 @@ namespace
 		return dict;
 	}
 
-
 	template<>
 	bp::dict convertStructure<OctData::Series>(const OctData::Series& series)
 	{
@@ -207,22 +236,43 @@ namespace
 		dict["bscans"] = std::move(bscanList);
 		return dict;
 	}
+
 }
 
 
-bp::dict readFile(std::string filename)
+bp::dict readFile(std::string filename, const OctData::FileReadOptions& options)
 {
-	// Load Options
-	OctData::FileReadOptions options;
-
 	if(filename.empty())
 		return bp::dict();
 
 	OctData::OCT oct = OctData::OctFileRead::openFile(filename, options);
 
-	bp::dict dictOut = convertStructure(oct);
+	return convertStructure(oct);
+}
 
-	return dictOut;
+
+bp::dict readFileOpt(std::string filename, const bp::dict& opt)
+{
+	// Load Options
+	OctData::FileReadOptions options;
+
+	ParameterFromOptions pfo(opt);
+	options.getSetParameter(pfo);
+
+	return readFile(filename, options);
+}
+
+bp::dict readFileDefault(std::string filename)
+{
+	return readFile(filename, OctData::FileReadOptions());
+}
+
+bp::dict getDefaultConfig()
+{
+	OctData::FileReadOptions opt;
+	ParameterToOptions pto;
+	opt.getSetParameter(pto);
+	return pto.getValueDict();
 }
 
 
@@ -232,6 +282,8 @@ BOOST_PYTHON_MODULE(octdata4python)
 {
 	bn::initialize();
 
-	def("readFile", readFile);
+	def("readFile", readFileDefault);
+	def("readFile", readFileOpt);
+	def("getDefaultConfig", getDefaultConfig);
 };
 
