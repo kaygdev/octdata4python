@@ -14,7 +14,6 @@ message(STATUS "PYTHON_INCLUDE_DIRS = ${PYTHON_INCLUDE_DIRS}")
 message(STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}")
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake_module/)
 
 find_package(LibOctData REQUIRED)
 find_package(OpenCV REQUIRED)
