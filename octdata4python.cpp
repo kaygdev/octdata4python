@@ -177,7 +177,7 @@ namespace
 		return dict;
 	}
 
-	bp::dict convertBScan(const OctData::BScan* bscan)
+	bp::dict convertBScan(const std::shared_ptr<const OctData::BScan>& bscan)
 	{
 		if(!bscan)
 			return bp::dict();
@@ -230,7 +230,7 @@ namespace
 		dict["slo"]  = convertSlo(series.getSloImage());
 
 		bp::list bscanList;
-		for(const OctData::BScan* bscan : series.getBScans())
+		for(const std::shared_ptr<const OctData::BScan>& bscan : series.getBScans())
 			bscanList.append(convertBScan(bscan));
 
 		dict["bscans"] = std::move(bscanList);
